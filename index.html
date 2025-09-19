@@ -113,13 +113,14 @@
         }
 
         async function sendToBackend(message) {
-            // This calls /api/message on the same domain — later we'll deploy a serverless function or proxy here.
             try {
-                const res = await fetch('/api/message', {
+                // 🔹 Change fetch URL to your Coral server on Railway
+                const res = await fetch('https://ai-agentic-hackathon-production.up.railway.app/message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message })
                 });
+
                 if (!res.ok) throw new Error('No backend or backend error');
                 const j = await res.json();
                 return j?.reply ?? 'No reply from backend';
@@ -130,7 +131,6 @@
         }
 
         function mockAgentResponse(userMessage) {
-            // Very short helpful mock behavior — replace this when wiring to Coral
             if (!userMessage || userMessage.trim().length === 0) return "Please ask a short question.";
             const lower = userMessage.toLowerCase();
             if (lower.includes('price') || lower.includes('cost')) return "Our prices vary by product. Please specify which product or size you mean.";
@@ -146,7 +146,6 @@
             promptInput.value = '';
             appendMessage('…thinking…', 'agent');
             const reply = await sendToBackend(msg);
-            // replace last '…thinking…' with real reply
             const nodes = Array.from(chat.querySelectorAll('.msg.agent'));
             const last = nodes[nodes.length - 1];
             if (last && last.textContent === '…thinking…') last.textContent = reply;
@@ -155,6 +154,7 @@
 
         promptInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendBtn.click(); });
     </script>
+
 </body>
 
 </html>
