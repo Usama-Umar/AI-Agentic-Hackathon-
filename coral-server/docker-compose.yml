@@ -1,0 +1,8 @@
+version: '3'
+services:
+  coral:
+    image: ghcr.io/coralprotocol/coral:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - CORAL_ENV=dev
