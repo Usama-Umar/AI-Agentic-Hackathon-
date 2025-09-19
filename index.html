@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Coral FAQ Agent — Demo</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 720px;
+            margin: 30px auto;
+            padding: 0 16px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        #chat {
+            margin-top: 18px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 220px;
+            background: #fafafa;
+        }
+
+        .msg {
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 85%;
+        }
+
+        .user {
+            background: #dfefff;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .agent {
+            background: #fff;
+            border: 1px solid #eee;
+        }
+
+        #controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+
+        small.note {
+            color: #666;
+            display: block;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <img src="https://raw.githubusercontent.com/Coral-Protocol/Coral-Protocol/main/logo.png" alt=""
+            style="width:36px;height:36px;opacity:.9">
+        <div>
+            <h1>Coral FAQ Agent — Demo</h1>
+            <div style="font-size:.9rem;color:#666">Paste a question → get a short answer. (Mock mode until backend is
+                connected.)</div>
+        </div>
+    </header>
+
+    <div id="chat" aria-live="polite"></div>
+
+    <div id="controls">
+        <input id="prompt" type="text" placeholder="Ask a question (e.g. 'What's your return policy?')" />
+        <button id="send">Send</button>
+    </div>
+    <small class="note">When connected to Coral, this will call a server API that sends the message to a Coral agent and
+        shows the reply.</small>
+
+    <script>
+        const chat = document.getElementById('chat');
+        const promptInput = document.getElementById('prompt');
+        const sendBtn = document.getElementById('send');
+
+        function appendMessage(text, who = 'agent') {
+            const d = document.createElement('div');
+            d.className = 'msg ' + (who === 'user' ? 'user' : 'agent');
+            d.textContent = text;
+            chat.appendChild(d);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function sendToBackend(message) {
+            // This calls /api/message on the same domain — later we'll deploy a serverless function or proxy here.
+            try {
+                const res = await fetch('/api/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                if (!res.ok) throw new Error('No backend or backend error');
+                const j = await res.json();
+                return j?.reply ?? 'No reply from backend';
+            } catch (err) {
+                // fallback: return a mock reply so the UI is functional right away
+                return mockAgentResponse(message);
+            }
+        }
+
+        function mockAgentResponse(userMessage) {
+            // Very short helpful mock behavior — replace this when wiring to Coral
+            if (!userMessage || userMessage.trim().length === 0) return "Please ask a short question.";
+            const lower = userMessage.toLowerCase();
+            if (lower.includes('price') || lower.includes('cost')) return "Our prices vary by product. Please specify which product or size you mean.";
+            if (lower.includes('return') || lower.includes('refund')) return "We accept returns within 14 days if the product is unused — keep the receipt.";
+            if (lower.includes('shipping')) return "Standard shipping is 3–5 business days. Expedited options are available at checkout.";
+            return "Mock answer: this UI is ready. Next step: I'll show you how to connect this to the Coral Protocol so a real agent answers.";
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            const msg = promptInput.value.trim();
+            if (!msg) return;
+            appendMessage(msg, 'user');
+            promptInput.value = '';
+            appendMessage('…thinking…', 'agent');
+            const reply = await sendToBackend(msg);
+            // replace last '…thinking…' with real reply
+            const nodes = Array.from(chat.querySelectorAll('.msg.agent'));
+            const last = nodes[nodes.length - 1];
+            if (last && last.textContent === '…thinking…') last.textContent = reply;
+            else appendMessage(reply, 'agent');
+        });
+
+        promptInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendBtn.click(); });
+    </script>
+</body>
+
+</html>
